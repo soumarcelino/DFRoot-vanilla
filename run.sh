@@ -12,9 +12,9 @@ LAST=$(adb -s "$SERIAL" shell "cat $REMOTE/last-boot 2>/dev/null || true" | tr -
 
 "$ROOT/build.sh"
 adb -s "$SERIAL" shell "mkdir -p $REMOTE"
-adb -s "$SERIAL" push "$ROOT/build/runner.jar" "$REMOTE/runner.jar" >/dev/null
-adb -s "$SERIAL" push "$ROOT/build/libexp.so" "$REMOTE/libexp.so" >/dev/null
-adb -s "$SERIAL" push "$ROOT/payload/ksud" /data/local/tmp/ksud >/dev/null
+adb -s "$SERIAL" push "$ROOT/out/runner.jar" "$REMOTE/runner.jar" >/dev/null
+adb -s "$SERIAL" push "$ROOT/out/libexp.so" "$REMOTE/libexp.so" >/dev/null
+adb -s "$SERIAL" push "$ROOT/ksud/ksud" /data/local/tmp/ksud >/dev/null
 adb -s "$SERIAL" shell "chmod 755 /data/local/tmp/ksud; printf '%s\n' '$BOOT' >$REMOTE/last-boot"
 
 adb -s "$SERIAL" shell \
