@@ -11,6 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.graphics.Color;
+import android.graphics.Typeface;
 
 import java.util.concurrent.Executors;
 import java.io.PrintWriter;
@@ -51,11 +52,12 @@ public final class MainActivity extends Activity implements IReporter {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         run = new Button(this);
-        run.setText("Run");
+        run.setText("Start");
         run.setAllCaps(false);
         run.setTextColor(Color.WHITE);
         run.setTextSize(17);
-        run.setBackgroundResource(R.drawable.run_button);
+        run.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        run.setBackgroundResource(R.drawable.start_button);
         run.setMinHeight((int) (56 * getResources().getDisplayMetrics().density));
         LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -66,6 +68,7 @@ public final class MainActivity extends Activity implements IReporter {
 
         run.setOnClickListener(view -> {
             run.setEnabled(false);
+            run.setText("Running…");
             logs.setText("");
             Executors.newSingleThreadExecutor().execute(() -> {
                 report("[APP] stage=session status=started\n");
@@ -73,13 +76,17 @@ public final class MainActivity extends Activity implements IReporter {
                     int result = ExploitRunner.run(this, this);
                     report("[RESULT] status=" + (result == 0 ? "success" : "failed")
                             + " exit_code=" + result + "\n");
+                    runOnUiThread(() -> {
+                        if (result == 0) showRootActive();
+                        else showStart();
+                    });
                 } catch (Throwable error) {
                     StringWriter trace = new StringWriter();
                     error.printStackTrace(new PrintWriter(trace));
                     report("[RESULT] status=exception type=" + error.getClass().getName()
                             + " message=" + error.getMessage() + "\n" + trace + "\n");
+                    runOnUiThread(this::showStart);
                 }
-                runOnUiThread(() -> run.setEnabled(true));
             });
         });
     }
@@ -95,5 +102,19 @@ public final class MainActivity extends Activity implements IReporter {
             logs.append(formatted);
             scroll.post(() -> scroll.fullScroll(ScrollView.FOCUS_DOWN));
         });
+    }
+
+    private void showStart() {
+        run.setText("Start");
+        run.setBackgroundResource(R.drawable.start_button);
+        run.setClickable(true);
+        run.setEnabled(true);
+    }
+
+    private void showRootActive() {
+        run.setText("Root Active");
+        run.setBackgroundResource(R.drawable.run_button);
+        run.setEnabled(true);
+        run.setClickable(false);
     }
 }
