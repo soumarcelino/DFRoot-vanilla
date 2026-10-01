@@ -48,9 +48,7 @@ static void compute_iv(const uint8_t old_content[16], const uint8_t desired[16],
         iv[i] = dec[i] ^ desired[i];
 }
 
-/* Read 16 bytes from vendor file at offset using crash_dump bridge (read mode).
- * crash_dump64 has been overwritten with splicehelper which supports argv[3]="r".
- */
+/* Read a vendor range in one crash_dump bridge invocation. */
 static int read_vendor_range(off_t offset, uint8_t *buf, size_t length,
                              struct Reporter *reporter) {
     int rdpipe[2];
@@ -306,8 +304,6 @@ int patch_file_cbc(const char *path, const char *payload, size_t len,
             REPORTLN("write #%zu at 0x%lx failed", i, (long)off);
             rc = -1; break;
         }
-        if (i % 32 == 0)
-            REPORTLN("%zu ...", i * 16);
     }
 
     if (!use_helper) close(file_fd);

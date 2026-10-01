@@ -1,6 +1,4 @@
 #include <syscall.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -10,11 +8,8 @@
 // /home/brian/android/ide/sdk/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip splicehelper
 
 // argv[0] = program name
-// argv[1] = file offset (decimal string)
-// argv[2] = file path
-// argv[3] = optional "r" — read mode: write 16 bytes of file content to fd 0 (OUT_FD)
-// argv[3] = optional "R" and argv[4] = length — batch read mode
-//           if absent — splice mode: splice 16 bytes of file page into fd 1 (PIPE_FD)
+// Only the two modes used by libexp are implemented:
+// R: copy a file range to fd 0; S: persistent splice server on fd 3/fd 4.
 
 #define OUT_FD  0
 #define PIPE_FD 1
@@ -79,18 +74,6 @@ void start_c(void *argblock) {
         mysyscall1(0, __NR_exit_group);
     }
 
-    if (mode && streq(mode, "r")) {
-        /* Read mode: lseek to offset, read 16 bytes, write to OUT_FD */
-        /* Exit codes: 0=ok, 1=read<16, 2=write<16 */
-        mysyscall3((unsigned long)file_fd, (unsigned long)off, SEEK_SET, __NR_lseek);
-        unsigned char buf[16];
-        long n = mysyscall3((unsigned long)file_fd, (unsigned long)buf, 16, __NR_read);
-        if (n != 16)
-            mysyscall1(1, __NR_exit_group);
-        long w = mysyscall3(OUT_FD, (unsigned long)buf, 16, __NR_write);
-        mysyscall1((unsigned long)(w == 16 ? 0 : 2), __NR_exit_group);
-    }
-
     if (mode && streq(mode, "R")) {
         unsigned long remaining = parse_int(argv[4]);
         unsigned char buf[256];
@@ -111,16 +94,7 @@ void start_c(void *argblock) {
         mysyscall1(0, __NR_exit_group);
     }
 
-    /* Splice mode: splice 16-byte page into PIPE_FD */
-    long ret = mysyscall6(
-        (unsigned long)file_fd,
-        (unsigned long)&off,
-        PIPE_FD,
-        (unsigned long)NULL,
-        16,
-        SPLICE_F_MOVE,
-        __NR_splice);
-    mysyscall1((unsigned long)(ret == 16 ? 0 : 1), __NR_exit_group);
+    mysyscall1(1, __NR_exit_group);
 }
 
 __attribute__((naked)) void _start() {
