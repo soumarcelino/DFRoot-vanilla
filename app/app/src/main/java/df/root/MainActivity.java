@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.graphics.Color;
 
 import java.util.concurrent.Executors;
 import java.io.PrintWriter;
@@ -21,6 +22,7 @@ import java.util.Locale;
 public final class MainActivity extends Activity implements IReporter {
     private TextView logs;
     private Button run;
+    private ScrollView scroll;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -37,18 +39,29 @@ public final class MainActivity extends Activity implements IReporter {
             return insets;
         });
 
-        run = new Button(this);
-        run.setText("Run");
-        layout.addView(run, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
         logs = new TextView(this);
         logs.setTextIsSelectable(true);
         logs.setMovementMethod(new ScrollingMovementMethod());
-        ScrollView scroll = new ScrollView(this);
+        logs.setTextSize(13);
+        logs.setPadding(0, 0, 0, padding / 2);
+        scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
         scroll.addView(logs);
         layout.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+
+        run = new Button(this);
+        run.setText("Run");
+        run.setAllCaps(false);
+        run.setTextColor(Color.WHITE);
+        run.setTextSize(17);
+        run.setBackgroundResource(R.drawable.run_button);
+        run.setMinHeight((int) (56 * getResources().getDisplayMetrics().density));
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (int) (56 * getResources().getDisplayMetrics().density));
+        buttonParams.topMargin = padding;
+        layout.addView(run, buttonParams);
         setContentView(layout);
 
         run.setOnClickListener(view -> {
@@ -78,6 +91,9 @@ public final class MainActivity extends Activity implements IReporter {
             if (!line.isEmpty()) formatted.append(time).append(" ").append(line).append("\n");
         }
         Log.i("DFRoot", formatted.toString().trim());
-        runOnUiThread(() -> logs.append(formatted));
+        runOnUiThread(() -> {
+            logs.append(formatted);
+            scroll.post(() -> scroll.fullScroll(ScrollView.FOCUS_DOWN));
+        });
     }
 }
