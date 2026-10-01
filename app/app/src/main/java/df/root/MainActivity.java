@@ -1,0 +1,57 @@
+package df.root;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import java.util.concurrent.Executors;
+
+public final class MainActivity extends Activity implements IReporter {
+    private TextView logs;
+    private Button run;
+
+    @Override public void onCreate(Bundle state) {
+        super.onCreate(state);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(padding, padding, padding, padding);
+
+        run = new Button(this);
+        run.setText("Run");
+        layout.addView(run, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        logs = new TextView(this);
+        logs.setTextIsSelectable(true);
+        logs.setMovementMethod(new ScrollingMovementMethod());
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(logs);
+        layout.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        setContentView(layout);
+
+        run.setOnClickListener(view -> {
+            run.setEnabled(false);
+            logs.setText("");
+            Executors.newSingleThreadExecutor().execute(() -> {
+                try {
+                    int result = ExploitRunner.run(this, this);
+                    report("\nexit: " + result + "\n");
+                } catch (Throwable error) {
+                    report("\nerror: " + error + "\n");
+                }
+                runOnUiThread(() -> run.setEnabled(true));
+            });
+        });
+    }
+
+    @Override public void report(String message) {
+        runOnUiThread(() -> logs.append(message));
+    }
+}

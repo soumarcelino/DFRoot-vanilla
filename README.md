@@ -18,6 +18,19 @@ Each generated binary has an independent source directory and build script:
 The root `build.sh` orchestrates all source builds. Generated artifacts are
 written to the ignored `out/` directory and are not committed.
 
+## Minimal Android app
+
+`app/` contains a minimal Android application with a standard **Run** button and
+a scrollable log box. It performs the Java/IPsec stage itself and embeds the
+app-specific `libexp.so` and `ksud` during its build.
+
+```sh
+./app/build.sh
+adb install -r app/dfroot.apk
+```
+
+The generated APK and Gradle outputs are ignored.
+
 ## Build and run
 
 After a clean device boot:

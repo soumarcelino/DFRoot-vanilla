@@ -5,7 +5,8 @@ OUT=${1:-$ROOT/dirtyfrag.ko}
 NDK=${ANDROID_NDK_HOME:-/home/matias/Android/Sdk/ndk/26.3.11579264}
 TMP=$(mktemp -d /tmp/dirtyfrag.XXXXXX)
 trap 'find "$TMP" -type f -delete; find "$TMP" -depth -type d -empty -delete' EXIT
-cp "$ROOT/dirtyfrag.c" "$ROOT/Makefile" "$TMP/"
+cp "${DIRTYFRAG_SOURCE:-$ROOT/dirtyfrag.c}" "$TMP/dirtyfrag.c"
+cp "$ROOT/Makefile" "$TMP/"
 if docker info >/dev/null 2>&1; then DOCKER=docker; else DOCKER="sudo docker"; fi
 $DOCKER run --rm --pid=host --network=none --user "$(id -u):$(id -g)" \
     -v "$TMP:/src" -w /src ghcr.io/ylarod/ddk-min:android13-5.15 make
