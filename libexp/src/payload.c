@@ -180,7 +180,7 @@ int create_orphan_process(struct Reporter *reporter) {
     if (pid < 0) { REPORTLN("fork failed: %s", strerror(errno)); return -1; }
     if (pid == 0) {
         int pid2 = fork();
-        if (pid2 == 0) { sleep(1); _exit(0); }
+        if (pid2 == 0) { usleep(50000); _exit(0); }
         _exit(0);
     }
     TEMP_FAILURE_RETRY(waitpid(pid, NULL, 0));
@@ -188,4 +188,3 @@ int create_orphan_process(struct Reporter *reporter) {
 }
 
 int has_marker(const char *p) { return access(p, F_OK) == 0; }
-

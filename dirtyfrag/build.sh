@@ -17,3 +17,5 @@ mkdir -p "$(dirname "$OUT")"
     -R .hyp.text -R .hyp.bss -R .hyp.rodata -R .hyp.event_ids \
     -R .hyp.patchable_function_entries -R .hyp.data \
     "$TMP/dirtyfrag.ko" "$OUT"
+"$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy" \
+    --set-section-alignment .text=4 "$OUT"

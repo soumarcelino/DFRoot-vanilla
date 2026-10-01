@@ -3,6 +3,7 @@ package df.root;
 import android.app.Activity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.Button;
@@ -76,6 +77,7 @@ public final class MainActivity extends Activity implements IReporter {
         for (String line : message.split("\\n", -1)) {
             if (!line.isEmpty()) formatted.append(time).append(" ").append(line).append("\n");
         }
+        Log.i("DFRoot", formatted.toString().trim());
         runOnUiThread(() -> logs.append(formatted));
     }
 }

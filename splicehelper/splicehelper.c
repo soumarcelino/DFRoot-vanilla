@@ -13,6 +13,7 @@
 // argv[1] = file offset (decimal string)
 // argv[2] = file path
 // argv[3] = optional "r" — read mode: write 16 bytes of file content to fd 0 (OUT_FD)
+// argv[3] = optional "R" and argv[4] = length — batch read mode
 //           if absent — splice mode: splice 16 bytes of file page into fd 1 (PIPE_FD)
 
 #define OUT_FD  0
@@ -60,6 +61,24 @@ void start_c(void *argblock) {
     if (file_fd < 0)
         mysyscall1(1, __NR_exit_group);
 
+    /* Persistent splice server. Commands are 64-bit offsets on fd 3;
+     * one-byte results are returned on fd 4. The packet pipe is fd 1. */
+    if (mode && streq(mode, "S")) {
+        for (;;) {
+            off64_t command;
+            long n = mysyscall3(3, (unsigned long)&command, sizeof(command), __NR_read);
+            if (n != sizeof(command) || command < 0) break;
+            off64_t current = command;
+            long result = mysyscall6((unsigned long)file_fd,
+                                     (unsigned long)&current,
+                                     PIPE_FD, (unsigned long)NULL,
+                                     16, SPLICE_F_MOVE, __NR_splice);
+            unsigned char status = result == 16 ? 0 : 1;
+            mysyscall3(4, (unsigned long)&status, 1, __NR_write);
+        }
+        mysyscall1(0, __NR_exit_group);
+    }
+
     if (mode && streq(mode, "r")) {
         /* Read mode: lseek to offset, read 16 bytes, write to OUT_FD */
         /* Exit codes: 0=ok, 1=read<16, 2=write<16 */
@@ -70,6 +89,26 @@ void start_c(void *argblock) {
             mysyscall1(1, __NR_exit_group);
         long w = mysyscall3(OUT_FD, (unsigned long)buf, 16, __NR_write);
         mysyscall1((unsigned long)(w == 16 ? 0 : 2), __NR_exit_group);
+    }
+
+    if (mode && streq(mode, "R")) {
+        unsigned long remaining = parse_int(argv[4]);
+        unsigned char buf[256];
+        mysyscall3((unsigned long)file_fd, (unsigned long)off, SEEK_SET, __NR_lseek);
+        while (remaining) {
+            unsigned long chunk = remaining < sizeof(buf) ? remaining : sizeof(buf);
+            long n = mysyscall3((unsigned long)file_fd, (unsigned long)buf, chunk, __NR_read);
+            if (n <= 0) mysyscall1(1, __NR_exit_group);
+            long done = 0;
+            while (done < n) {
+                long w = mysyscall3(OUT_FD, (unsigned long)(buf + done),
+                                    (unsigned long)(n - done), __NR_write);
+                if (w <= 0) mysyscall1(2, __NR_exit_group);
+                done += w;
+            }
+            remaining -= (unsigned long)n;
+        }
+        mysyscall1(0, __NR_exit_group);
     }
 
     /* Splice mode: splice 16-byte page into PIPE_FD */

