@@ -1,5 +1,6 @@
 /out/
 /app/build/
 /app/.gradle/
+/app/app/build/
 
 /app/dfroot.apk

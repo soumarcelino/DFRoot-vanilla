@@ -51,7 +51,3 @@ This research is derived from and should be read alongside:
 - [diabl0w/DFRoot](https://github.com/diabl0w/DFRoot)
 
 Use only on devices you own or are explicitly authorized to test.
-
-## License
-
-Licensed under the [GNU General Public License v2.0](LICENSE), the same free software license used by the Linux kernel.

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -21,6 +22,14 @@ public final class MainActivity extends Activity implements IReporter {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(padding, padding, padding, padding);
+        layout.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(
+                    padding + insets.getSystemWindowInsetLeft(),
+                    padding + insets.getSystemWindowInsetTop(),
+                    padding + insets.getSystemWindowInsetRight(),
+                    padding + insets.getSystemWindowInsetBottom());
+            return insets;
+        });
 
         run = new Button(this);
         run.setText("Run");
