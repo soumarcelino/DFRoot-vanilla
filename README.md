@@ -1,31 +1,40 @@
-# DFRoot vanilla
+# DFRoot Vanilla
 
-Runner ADB sem APK para o Samsung SM-S918B com kernel Android 13/5.15.
+A source-focused DFRoot research project for running the DirtyFrag chain from
+ADB without an APK. It targets the Samsung SM-S918B Android 13/5.15 kernel ABI.
 
-## Projetos
+## Projects
 
-Cada binário gerado possui seu próprio diretório e script de build:
+Each generated binary has an independent source directory and build script:
 
-| Diretório | Saída | Função |
+| Directory | Output | Purpose |
 | --- | --- | --- |
-| `dirtyfrag/` | `dirtyfrag.ko` | Módulo GKI Android 13/5.15 |
-| `splicehelper/` | `splicehelper` | Helper ARM64 estático |
-| `libexp/` | `libexp.so` | Exploit JNI; incorpora o módulo e o helper |
-| `runner/` | `runner.jar` | Entrada Java executada por `app_process` |
-| `ksud/` | `ksud` | Único binário pré-compilado mantido no repositório |
+| `dirtyfrag/` | `dirtyfrag.ko` | Android 13/5.15 GKI kernel module |
+| `splicehelper/` | `splicehelper` | Static ARM64 helper |
+| `libexp/` | `libexp.so` | JNI exploit library embedding the module and helper |
+| `runner/` | `runner.jar` | Java entry point executed through `app_process` |
+| `ksud/` | `ksud` | KernelSU daemon required by the tested chain |
 
-`build.sh` orquestra os quatro projetos e grava os resultados temporários em
-`out/`, que não é versionado.
+The root `build.sh` orchestrates all source builds. Generated artifacts are
+written to the ignored `out/` directory and are not committed.
 
-## Executar
+## Build and run
 
-Após um boot limpo:
+After a clean device boot:
 
 ```sh
 ./run.sh RXCX602E20X
 ```
 
-O script compila tudo, envia `runner.jar`, `libexp.so` e `ksud` para
-`/data/local/tmp`, executa o JAR e confirma o root com `su -c id`.
+The script builds the projects, stages the runtime files under
+`/data/local/tmp`, starts the JAR through `app_process`, and verifies the result
+with `su -c id`. It refuses to run twice during the same boot.
 
-Não execute duas vezes no mesmo boot. O script bloqueia essa tentativa.
+## References
+
+This research is derived from and should be read alongside:
+
+- [polygraphene/DFReroot](https://github.com/polygraphene/DFReroot/tree/main)
+- [diabl0w/DFRoot](https://github.com/diabl0w/DFRoot)
+
+Use only on devices you own or are explicitly authorized to test.
