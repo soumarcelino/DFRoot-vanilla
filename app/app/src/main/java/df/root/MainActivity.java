@@ -11,6 +11,11 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.concurrent.Executors;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public final class MainActivity extends Activity implements IReporter {
     private TextView logs;
@@ -49,11 +54,16 @@ public final class MainActivity extends Activity implements IReporter {
             run.setEnabled(false);
             logs.setText("");
             Executors.newSingleThreadExecutor().execute(() -> {
+                report("[APP] stage=session status=started\n");
                 try {
                     int result = ExploitRunner.run(this, this);
-                    report("\nexit: " + result + "\n");
+                    report("[RESULT] status=" + (result == 0 ? "success" : "failed")
+                            + " exit_code=" + result + "\n");
                 } catch (Throwable error) {
-                    report("\nerror: " + error + "\n");
+                    StringWriter trace = new StringWriter();
+                    error.printStackTrace(new PrintWriter(trace));
+                    report("[RESULT] status=exception type=" + error.getClass().getName()
+                            + " message=" + error.getMessage() + "\n" + trace + "\n");
                 }
                 runOnUiThread(() -> run.setEnabled(true));
             });
@@ -61,6 +71,11 @@ public final class MainActivity extends Activity implements IReporter {
     }
 
     @Override public void report(String message) {
-        runOnUiThread(() -> logs.append(message));
+        String time = new SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(new Date());
+        StringBuilder formatted = new StringBuilder();
+        for (String line : message.split("\\n", -1)) {
+            if (!line.isEmpty()) formatted.append(time).append(" ").append(line).append("\n");
+        }
+        runOnUiThread(() -> logs.append(formatted));
     }
 }
